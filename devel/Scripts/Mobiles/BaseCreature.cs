@@ -1,5 +1,9 @@
+// Nerun's Distro changes at lines 53-5; 2426-38.
 using System;
 using System.Collections.Generic;
+#if Framework_4_0
+using System.Threading.Tasks;
+#endif
 using Server.Regions;
 using Server.Targeting;
 using Server.Network;
@@ -49,6 +53,9 @@ namespace Server.Mobiles
 						//"(All/Name) attack"  All or the specified pet(s) currently under your control attack the target.
 		Patrol,			//"(Name) patrol"  Roves between two or more guarded targets.
 		Release,		//"(Name) release"  Releases pet back into the wild (removes "tame" status).
+// >>> [1st change of 2]
+		Dismiss,		//"(Name) dismiss"  Dismiss hireling (removes "tame" status).
+// end 1st
 		Stay,			//"(All/Name) stay" All or the specified pet(s) will stop and stay in current spot.
 		Stop,			//"(All/Name) stop Cancels any current orders to attack, guard or follow.
 		Transfer		//"(Name) transfer" Transfers complete ownership to targeted player.
@@ -353,7 +360,7 @@ namespace Server.Mobiles
 
 		private void CheckShout( PlayerMobile pm, Point3D oldLocation )
 		{
-			if ( m_MLNextShout > DateTime.Now || pm.Hidden || !pm.Alive )
+			if ( m_MLNextShout > DateTime.UtcNow || pm.Hidden || !pm.Alive )
 				return;
 
 			int shoutRange = ShoutRange;
@@ -372,7 +379,7 @@ namespace Server.Mobiles
 				return;
 
 			Shout( pm );
-			m_MLNextShout = DateTime.Now + ShoutDelay;
+			m_MLNextShout = DateTime.UtcNow + ShoutDelay;
 		}
 
 		public virtual void Shout( PlayerMobile pm )
@@ -465,7 +472,7 @@ namespace Server.Mobiles
 			get
 			{
 				if ( m_DeleteTimer != null && m_DeleteTimer.Running )
-					return m_DeleteTimer.Next - DateTime.Now;
+					return m_DeleteTimer.Next - DateTime.UtcNow;
 
 				return TimeSpan.Zero;
 			}
@@ -616,7 +623,7 @@ namespace Server.Mobiles
 		public virtual bool DisplayWeight{ get{ return Backpack is StrongBackpack; } }
 
 		#region Breath ability, like dragon fire breath
-		private DateTime m_NextBreathTime;
+		private long m_NextBreathTime;
 
 		// Must be overriden in subclass to enable
 		public virtual bool HasBreath{ get{ return false; } }
@@ -679,7 +686,7 @@ namespace Server.Mobiles
 		public virtual void BreathStallMovement()
 		{
 			if ( m_AI != null )
-				m_AI.NextMove = DateTime.Now + TimeSpan.FromSeconds( BreathStallTime );
+				m_AI.NextMove = Core.TickCount.Ticks + (int)(BreathStallTime * 1000);
 		}
 
 		public virtual void BreathPlayAngerSound()
@@ -854,7 +861,7 @@ namespace Server.Mobiles
 			if ( m_EndFlee == DateTime.MinValue )
 				return false;
 
-			if ( DateTime.Now >= m_EndFlee )
+			if ( DateTime.UtcNow >= m_EndFlee )
 			{
 				StopFlee();
 				return false;
@@ -865,7 +872,7 @@ namespace Server.Mobiles
 
 		public virtual void BeginFlee( TimeSpan maxDuration )
 		{
-			m_EndFlee = DateTime.Now + maxDuration;
+			m_EndFlee = DateTime.UtcNow + maxDuration;
 		}
 
 		#endregion
@@ -1190,6 +1197,7 @@ namespace Server.Mobiles
 
 		public override ApplyPoisonResult ApplyPoison( Mobile from, Poison poison )
 		{
+
 			if ( !Alive || IsDeadPet )
 				return ApplyPoisonResult.Immune;
 
@@ -1404,7 +1412,7 @@ namespace Server.Mobiles
 
 		public void Unpacify()
 		{
-			BardEndTime = DateTime.Now;
+			BardEndTime = DateTime.UtcNow;
 			BardPacified = false;
 		}
 
@@ -1712,7 +1720,7 @@ namespace Server.Mobiles
 
 			m_Owners = new List<Mobile>();
 
-			m_NextReacquireTime = DateTime.Now + ReacquireDelay;
+			m_NextReacquireTime = Core.TickCount.Ticks + (int)ReacquireDelay.TotalMilliseconds;
 
 			ChangeAIType(AI);
 
@@ -1951,7 +1959,7 @@ namespace Server.Mobiles
 				if ( m_bSummoned )
 				{
 					m_SummonEnd = reader.ReadDeltaTime();
-					new UnsummonTimer( m_ControlMaster, this, m_SummonEnd - DateTime.Now ).Start();
+					new UnsummonTimer( m_ControlMaster, this, m_SummonEnd - DateTime.UtcNow ).Start();
 				}
 
 				m_iControlSlots = reader.ReadInt();
@@ -2294,9 +2302,9 @@ namespace Server.Mobiles
 								{
 									if ( BondingBegin == DateTime.MinValue )
 									{
-										BondingBegin = DateTime.Now;
+										BondingBegin = DateTime.UtcNow;
 									}
-									else if ( (BondingBegin + BondingDelay) <= DateTime.Now )
+									else if ( (BondingBegin + BondingDelay) <= DateTime.UtcNow )
 									{
 										IsBonded = true;
 										BondingBegin = DateTime.MinValue;
@@ -2419,6 +2427,19 @@ namespace Server.Mobiles
 				case AIType.AI_Thief:
 					m_AI = new ThiefAI(this);
 					break;
+// >>> [2nd change of 2]
+// ERICA'S ORC SCOUT and NINJA
+				case AIType.AI_OrcScout:
+					m_AI = new OrcScoutAI(this);			         
+				        break;
+				case AIType.AI_Ninja:
+					m_AI = new NinjaAI(this);
+					break;
+// PAPPA SMURF's Spellbinder
+				case AIType.AI_Spellbinder:
+					m_AI = new SpellbinderAI(this);
+					break;
+// end 2nd
 			}
 		}
 
@@ -2569,6 +2590,7 @@ namespace Server.Mobiles
 				m_dPassiveSpeed = value;
 			}
 		}
+
 
 		[CommandProperty( AccessLevel.GameMaster )]
 		public double CurrentSpeed
@@ -2871,7 +2893,7 @@ namespace Server.Mobiles
 				if ( m_bSummoned == value )
 					return;
 
-				m_NextReacquireTime = DateTime.Now;
+				m_NextReacquireTime = Core.TickCount.Ticks;
 
 				m_bSummoned = value;
 				Delta( MobileDelta.Noto );
@@ -3508,7 +3530,7 @@ namespace Server.Mobiles
 			{
 				// idling...
 
-				if ( DateTime.Now >= m_IdleReleaseTime )
+				if ( DateTime.UtcNow >= m_IdleReleaseTime )
 				{
 					m_IdleReleaseTime = DateTime.MinValue;
 					return false; // idle is over
@@ -3520,7 +3542,7 @@ namespace Server.Mobiles
 			if ( 95 > Utility.Random( 100 ) )
 				return false; // not idling, but don't want to enter idle state
 
-			m_IdleReleaseTime = DateTime.Now + TimeSpan.FromSeconds( Utility.RandomMinMax( 15, 25 ) );
+			m_IdleReleaseTime = DateTime.UtcNow + TimeSpan.FromSeconds( Utility.RandomMinMax( 15, 25 ) );
 
 			if ( Body.IsHuman )
 			{
@@ -3598,6 +3620,7 @@ namespace Server.Mobiles
 			base.OnMapChange( oldMap );
 		}
 
+
 		protected override void OnLocationChange( Point3D oldLocation )
 		{
 			CheckAIActive();
@@ -3607,7 +3630,7 @@ namespace Server.Mobiles
 
 		public virtual void ForceReacquire()
 		{
-			m_NextReacquireTime = DateTime.MinValue;
+			m_NextReacquireTime = Core.TickCount.Ticks;
 		}
 
 		public override void OnMovement( Mobile m, Point3D oldLocation )
@@ -4823,7 +4846,7 @@ namespace Server.Mobiles
 				if ( owner == null || owner.Deleted || owner.Map != this.Map || !owner.InRange( this, 12 ) || !this.CanSee( owner ) || !this.InLOS( owner ) )
 				{
 					if ( this.OwnerAbandonTime == DateTime.MinValue )
-						this.OwnerAbandonTime = DateTime.Now;
+						this.OwnerAbandonTime = DateTime.UtcNow;
 				}
 				else
 				{
@@ -4962,9 +4985,9 @@ namespace Server.Mobiles
 		 * This functionality appears to be implemented on OSI as well
 		 */
 
-		private DateTime m_NextReacquireTime;
+		private long m_NextReacquireTime;
 
-		public DateTime NextReacquireTime{ get{ return m_NextReacquireTime; } set{ m_NextReacquireTime = value; } }
+		public long NextReacquireTime { get { return m_NextReacquireTime; } set { m_NextReacquireTime = value; } }
 
 		public virtual TimeSpan ReacquireDelay{ get{ return TimeSpan.FromSeconds( 10.0 ); } }
 		public virtual bool ReacquireOnMovement{ get{ return false; } }
@@ -5131,7 +5154,7 @@ namespace Server.Mobiles
 			}
 
 			new UnsummonTimer( caster, creature, duration ).Start();
-			creature.m_SummonEnd = DateTime.Now + duration;
+			creature.m_SummonEnd = DateTime.UtcNow + duration;
 
 			creature.MoveToWorld( p, caster.Map );
 
@@ -5152,7 +5175,7 @@ namespace Server.Mobiles
 		private const double MinutesToNextChanceMin = 0.25;
 		private const double MinutesToNextChanceMax = 0.75;
 
-		private DateTime m_NextRummageTime;
+		private long m_NextRummageTime;
 
 		public virtual bool CanBreath { get { return HasBreath && !Summoned; } }
 		public virtual bool IsDispellable { get { return Summoned && !IsAnimatedDead; } }
@@ -5174,8 +5197,8 @@ namespace Server.Mobiles
 		public virtual double HealOwnerInterval { get { return 30.0; } }
 		public virtual bool HealOwnerFully { get { return false; } }
 
-		private DateTime m_NextHealTime = DateTime.Now;
-		private DateTime m_NextHealOwnerTime = DateTime.Now;
+		private long m_NextHealTime = Core.TickCount.Ticks;
+		private long m_NextHealOwnerTime = Core.TickCount.Ticks;
 		private Timer m_HealTimer = null;
 
 		public bool IsHealing { get { return ( m_HealTimer != null ); } }
@@ -5292,7 +5315,7 @@ namespace Server.Mobiles
 		#endregion
 
 		#region Damaging Aura
-		private DateTime m_NextAura;
+		private long m_NextAura;
 
 		public virtual bool HasAura { get { return false; } }
 		public virtual TimeSpan AuraInterval { get { return TimeSpan.FromSeconds( 5 ); } }
@@ -5345,7 +5368,9 @@ namespace Server.Mobiles
 
 		public virtual void OnThink()
 		{
-			if ( EnableRummaging && CanRummageCorpses && !Summoned && !Controlled && DateTime.Now >= m_NextRummageTime )
+			long tc = Core.TickCount.Ticks;
+
+			if ( EnableRummaging && CanRummageCorpses && !Summoned && !Controlled && tc - m_NextRummageTime >= 0 )
 			{
 				double min, max;
 
@@ -5361,21 +5386,21 @@ namespace Server.Mobiles
 				}
 
 				double delay = min + (Utility.RandomDouble() * (max - min));
-				m_NextRummageTime = DateTime.Now + TimeSpan.FromMinutes( delay );
+				m_NextRummageTime = tc + (int)TimeSpan.FromMinutes(delay).TotalMilliseconds;
 			}
 
-			if ( CanBreath && DateTime.Now >= m_NextBreathTime ) // tested: controlled dragons do breath fire, what about summoned skeletal dragons?
+			if ( CanBreath && tc - m_NextBreathTime >= 0 ) // tested: controlled dragons do breath fire, what about summoned skeletal dragons?
 			{
 				Mobile target = this.Combatant;
 
 				if( target != null && target.Alive && !target.IsDeadBondedPet && CanBeHarmful( target ) && target.Map == this.Map && !IsDeadBondedPet && target.InRange( this, BreathRange ) && InLOS( target ) && !BardPacified )
 				{
-					if( ( DateTime.Now - m_NextBreathTime ) < TimeSpan.FromSeconds( 30 ) && Utility.RandomBool() )
+					if( ( Core.TickCount.Ticks - m_NextBreathTime ) < 30000 && Utility.RandomBool() )
 					{
 						BreathStart( target );
 					}
 
-					m_NextBreathTime = DateTime.Now + TimeSpan.FromSeconds( BreathMinDelay + ( ( Utility.RandomDouble( ) * ( BreathMaxDelay - BreathMinDelay ) ) ) );
+					m_NextBreathTime = tc + (int)TimeSpan.FromSeconds( BreathMinDelay + ( ( Utility.RandomDouble( ) * ( BreathMaxDelay - BreathMinDelay ) ) ) ).TotalMilliseconds;
 				}
 			}
 
@@ -5383,17 +5408,17 @@ namespace Server.Mobiles
 			{
 				Mobile owner = this.ControlMaster;
 
-				if ( owner != null && CanHealOwner && DateTime.Now >= m_NextHealOwnerTime && CanBeBeneficial( owner, true, true ) && owner.Map == this.Map && InRange( owner, HealStartRange ) && InLOS( owner ) && owner.Hits < HealOwnerTrigger * owner.HitsMax )
+				if ( owner != null && CanHealOwner && tc - m_NextHealOwnerTime >= 0 && CanBeBeneficial( owner, true, true ) && owner.Map == this.Map && InRange( owner, HealStartRange ) && InLOS( owner ) && owner.Hits < HealOwnerTrigger * owner.HitsMax )
 				{
 					HealStart( owner );
 
-					m_NextHealOwnerTime = DateTime.Now + TimeSpan.FromSeconds( HealOwnerInterval );
+					m_NextHealOwnerTime = tc + (int)TimeSpan.FromSeconds( HealOwnerInterval ).TotalMilliseconds;
 				}
-				else if ( CanHeal && DateTime.Now >= m_NextHealTime && CanBeBeneficial( this ) && ( Hits < HealTrigger * HitsMax || Poisoned ) )
+				else if ( CanHeal && tc - m_NextHealTime >= 0 && CanBeBeneficial( this ) && ( Hits < HealTrigger * HitsMax || Poisoned ) )
 				{
 					HealStart( this );
 
-					m_NextHealTime = DateTime.Now + TimeSpan.FromSeconds( HealInterval );
+					m_NextHealTime = tc + (int)TimeSpan.FromSeconds( HealInterval ).TotalMilliseconds;
 				}
 			}
 
@@ -5416,10 +5441,10 @@ namespace Server.Mobiles
 				m_FailedReturnHome = 0;
 			}
 
-			if ( HasAura && DateTime.Now >= m_NextAura )
+			if ( HasAura && tc - m_NextAura >= 0 )
 			{
 				AuraDamage();
-				m_NextAura = DateTime.Now + AuraInterval;
+				m_NextAura = tc + (int)AuraInterval.TotalMilliseconds;
 			}
 		}
 
@@ -5427,7 +5452,8 @@ namespace Server.Mobiles
 		{
 			Corpse toRummage = null;
 
-			foreach ( Item item in this.GetItemsInRange( 2 ) )
+			IPooledEnumerable eable = this.GetItemsInRange(2);
+			foreach ( Item item in eable )
 			{
 				if ( item is Corpse && item.Items.Count > 0 )
 				{
@@ -5435,6 +5461,7 @@ namespace Server.Mobiles
 					break;
 				}
 			}
+			eable.Free();
 
 			if ( toRummage == null )
 				return false;
@@ -5501,7 +5528,7 @@ namespace Server.Mobiles
 				BardMaster = master;
 				BardTarget = target;
 				Combatant = target;
-				BardEndTime = DateTime.Now + TimeSpan.FromSeconds( 30.0 );
+				BardEndTime = DateTime.UtcNow + TimeSpan.FromSeconds( 30.0 );
 
 				if ( target is BaseCreature )
 				{
@@ -5515,7 +5542,7 @@ namespace Server.Mobiles
 					t.BardMaster = master;
 					t.BardTarget = this;
 					t.Combatant = this;
-					t.BardEndTime = DateTime.Now + TimeSpan.FromSeconds( 30.0 );
+					t.BardEndTime = DateTime.UtcNow + TimeSpan.FromSeconds( 30.0 );
 				}
 			}
 			else
@@ -5623,7 +5650,7 @@ namespace Server.Mobiles
 			if ( owner == null || owner.Deleted || owner.Map != this.Map || !owner.InRange( this, 12 ) || !this.CanSee( owner ) || !this.InLOS( owner ) )
 			{
 				if ( this.OwnerAbandonTime == DateTime.MinValue )
-					this.OwnerAbandonTime = DateTime.Now;
+					this.OwnerAbandonTime = DateTime.UtcNow;
 			}
 			else
 			{
@@ -5742,7 +5769,7 @@ namespace Server.Mobiles
 
 		public LoyaltyTimer() : base( InternalDelay, InternalDelay )
 		{
-			m_NextHourlyCheck = DateTime.Now + TimeSpan.FromHours( 1.0 );
+			m_NextHourlyCheck = DateTime.UtcNow + TimeSpan.FromHours( 1.0 );
 			Priority = TimerPriority.FiveSeconds;
 		}
 
@@ -5750,8 +5777,8 @@ namespace Server.Mobiles
 
 		protected override void OnTick()
 		{
-			if ( DateTime.Now >= m_NextHourlyCheck )
-				m_NextHourlyCheck = DateTime.Now + TimeSpan.FromHours( 1.0 );
+			if ( DateTime.UtcNow >= m_NextHourlyCheck )
+				m_NextHourlyCheck = DateTime.UtcNow + TimeSpan.FromHours( 1.0 );
 			else
 				return;
 
@@ -5760,12 +5787,19 @@ namespace Server.Mobiles
 			// added array for wild creatures in house regions to be removed
 			List<BaseCreature> toRemove = new List<BaseCreature>();
 
-			foreach ( Mobile m in World.Mobiles.Values )
-			{
+#if Framework_4_0
+			Parallel.ForEach(World.Mobiles.Values, m => {
+#else
+			foreach ( Mobile m in World.Mobiles.Values ) {
+#endif
 				if ( m is BaseMount && ((BaseMount)m).Rider != null )
 				{
 					((BaseCreature)m).OwnerAbandonTime = DateTime.MinValue;
+#if Framework_4_0
+					return;
+#else
 					continue;
+#endif
 				}
 
 				if ( m is BaseCreature )
@@ -5778,10 +5812,12 @@ namespace Server.Mobiles
 
 						if ( !c.IsStabled && ( owner == null || owner.Deleted || owner.Map != c.Map || !owner.InRange( c, 12 ) || !c.CanSee( owner ) || !c.InLOS( owner ) ) )
 						{
-							if ( c.OwnerAbandonTime == DateTime.MinValue )
-								c.OwnerAbandonTime = DateTime.Now;
-							else if ( (c.OwnerAbandonTime + c.BondingAbandonDelay) <= DateTime.Now )
-								toRemove.Add( c );
+							if ( c.OwnerAbandonTime == DateTime.MinValue ) {
+								c.OwnerAbandonTime = DateTime.UtcNow;
+							} else if ( (c.OwnerAbandonTime + c.BondingAbandonDelay) <= DateTime.UtcNow ) {
+								lock (toRemove)
+									toRemove.Add(c);
+							}
 						}
 						else
 						{
@@ -5803,7 +5839,8 @@ namespace Server.Mobiles
 							}
 
 							if ( c.Loyalty <= 0 )
-								toRelease.Add( c );
+								lock (toRelease)
+									toRelease.Add( c );
 						}
 					}
 
@@ -5813,7 +5850,8 @@ namespace Server.Mobiles
 						c.RemoveStep++;
 
 						if ( c.RemoveStep >= 20 )
-							toRemove.Add( c );
+							lock (toRemove)
+								toRemove.Add( c );
 					}
 					else
 					{
@@ -5821,6 +5859,9 @@ namespace Server.Mobiles
 					}
 				}
 			}
+#if Framework_4_0
+			);
+#endif
 
 			foreach ( BaseCreature c in toRelease )
 			{

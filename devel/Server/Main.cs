@@ -58,6 +58,7 @@ namespace Server
 		private static bool m_HaltOnWarning;
 		private static bool m_VBdotNET;
 		private static MultiTextWriter m_MultiConOut;
+        public static DateTime TickCount = DateTime.Now;
 
 		private static bool m_Profiling;
 		private static DateTime m_ProfileStart;
