@@ -52,13 +52,13 @@ namespace Server.Items
 		}
 
 		// Threads will be removed six hours after the last post was made
-		private static TimeSpan ThreadDeletionTime = TimeSpan.FromHours( 6.0 );
+		protected static TimeSpan ThreadDeletionTime = TimeSpan.FromHours( 6.0 );
 
-		// A player may only create a thread once every two minutes
-		private static TimeSpan ThreadCreateTime = TimeSpan.FromMinutes( 2.0 );
-
-		// A player may only reply once every thirty seconds
-		private static TimeSpan ThreadReplyTime = TimeSpan.FromSeconds( 30.0 );
+        // A player may only create a thread once every two minutes
+        protected static TimeSpan ThreadCreateTime = TimeSpan.FromMinutes( 2.0 );
+        
+        // A player may only reply once every thirty seconds
+        protected static TimeSpan ThreadReplyTime = TimeSpan.FromSeconds( 30.0 );
 
 		public static bool CheckTime( DateTime time, TimeSpan range )
 		{
@@ -180,9 +180,9 @@ namespace Server.Items
 			return ( from.Map == this.Map && from.InRange( GetWorldLocation(), 2 ) );
 		}
 
-		public void PostMessage( Mobile from, BulletinMessage thread, string subject, string[] lines )
+		public virtual void PostMessage( Mobile from, BulletinMessage thread, string subject, string[] lines )
 		{
-			if ( thread != null )
+            if ( thread != null )
 				thread.LastPostTime = DateTime.Now;
 
 			AddItem( new BulletinMessage( from, thread, subject, lines ) );
@@ -277,7 +277,7 @@ namespace Server.Items
 
 			if ( board.GetLastPostTime( from, ( thread == null ), ref lastPostTime ) )
 			{
-				if ( !CheckTime( lastPostTime, (thread == null ? ThreadCreateTime : ThreadReplyTime) ) )
+				if ( !CheckTime( lastPostTime, (thread == null ? ThreadCreateTime : ThreadReplyTime) ) && from.AccessLevel  < AccessLevel.GameMaster )
 				{
 					if ( thread == null )
 						from.SendMessage( "You must wait {0} before creating a new thread.", FormatTS( ThreadCreateTime ) );

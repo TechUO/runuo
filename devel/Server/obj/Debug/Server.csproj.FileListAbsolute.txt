@@ -1,4 +1,0 @@
-C:\Users\LHLH\Documents\TechUo\RunUO\devel\Server\bin\Debug\Server.exe
-C:\Users\LHLH\Documents\TechUo\RunUO\devel\Server\bin\Debug\Server.pdb
-C:\Users\LHLH\Documents\TechUo\RunUO\devel\Server\obj\Debug\Server.exe
-C:\Users\LHLH\Documents\TechUo\RunUO\devel\Server\obj\Debug\Server.pdb
