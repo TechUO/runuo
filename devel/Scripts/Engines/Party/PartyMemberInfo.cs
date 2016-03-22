@@ -3,7 +3,7 @@ using Server;
 
 namespace Server.Engines.PartySystem
 {
-	public class PartyMemberInfo
+    public class PartyMemberInfo
 	{
 		private Mobile m_Mobile;
 		private bool m_CanLoot;
