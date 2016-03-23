@@ -2,4 +2,5 @@
 Please note we are currently undergoing construction.
 We will update this message once the construction is complete.
 Feel free to play while we build.
+Global chat is accessible by [c <message>
 Keep up to date with what we are doing by checking the changelog!
