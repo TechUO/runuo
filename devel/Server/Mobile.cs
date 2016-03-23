@@ -785,6 +785,7 @@ namespace Server
 		private DateTime m_LastIntGain;
 		private DateTime m_LastDexGain;
 		private Race m_Race;
+        private Boolean m_ShowMotd = true;
 
 		#endregion
 
@@ -861,6 +862,13 @@ namespace Server
 		{
 			get { return GetResistance( ResistanceType.Physical ); }
 		}
+
+        [CommandProperty(AccessLevel.Player)]
+        public virtual Boolean ShowMotd
+        {
+            set { m_ShowMotd = value; }
+            get { return m_ShowMotd; }
+        }
 
 		[CommandProperty( AccessLevel.Counselor )]
 		public virtual int FireResistance
@@ -5448,6 +5456,11 @@ namespace Server
 
 			switch( version )
 			{
+                case 32:
+                    {
+                        m_ShowMotd = reader.ReadBool();
+                        goto case 31;
+                    }
 				case 31:
 					{
 						m_LastStrGain = reader.ReadDeltaTime();
@@ -5880,7 +5893,9 @@ namespace Server
 
 		public virtual void Serialize( GenericWriter writer )
 		{
-			writer.Write( (int)31 ); // version
+			writer.Write( (int)32 ); // version
+
+            writer.Write(m_ShowMotd);
 
 			writer.WriteDeltaTime( m_LastStrGain );
 			writer.WriteDeltaTime( m_LastIntGain );

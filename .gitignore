@@ -6,3 +6,5 @@ devel/Scripts/Output/Scripts.CS.dll
 devel/Logs/Commands/Sunday, March 20, 2016.log
 devel/Logs/
 *.log
+devel/Scripts/obj/Debug/
+devel/Server/obj/Debug/
