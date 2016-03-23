@@ -1,3 +1,5 @@
-This is the message of the day.
-This is a second line.
-This is a really really really really really really really really really really really really really really really really really really really long line.
+<B>Thank you for joining us at TechUO!</b>
+Please note we are currently undergoing construction.
+We will update this message once the construction is complete.
+Feel free to play while we build.
+Keep up to date with what we are doing by checking the changelog!
