@@ -64,6 +64,9 @@
   <ItemGroup>
     <Compile Include=".\**\*.cs" />
     <Compile Include="Customs\BankItems.cs" />
+    <Compile Include="Customs\RCon\CommandProcessor.cs" />
+    <Compile Include="Customs\RCon\Listener.cs" />
+    <Compile Include="Customs\RCon\RCon.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Server\Server.csproj">
