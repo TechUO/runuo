@@ -410,7 +410,7 @@ namespace Server
 			try
 			{
 				if( m_Service )
-                {
+				{
 					if( !Directory.Exists( "Logs" ) )
 						Directory.CreateDirectory( "Logs" );
 
