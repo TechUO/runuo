@@ -14,6 +14,7 @@ namespace Customs.RCon
             try 
             {
                 HttpListener Listener = new HttpListener();
+                Listener.Start();
                 Listener.Prefixes.Add(string.Concat(RCon.ListenDomain, ":", RCon.ListenPort.ToString()));
                 return StartListening(Listener);
         	}
@@ -25,7 +26,6 @@ namespace Customs.RCon
 
         public bool StartListening(HttpListener Listener)
         {
-            Listener.Start();
             IAsyncResult result = Listener.BeginGetContext(new AsyncCallback(ListenerCallback), Listener);
             StartListening(Listener);
             return true;
@@ -44,7 +44,6 @@ namespace Customs.RCon
                 //Decrypt Commands.
                 //Run commands through CommandProcessor
                 //Wait for results and respond to query.
-
                 StartListening(Listener);
             }
             else

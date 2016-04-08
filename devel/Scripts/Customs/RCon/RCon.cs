@@ -16,6 +16,9 @@ namespace Customs.RCon
         {
             Console.WriteLine("Initializing TechUO Remote Control");
             if (!IsListenPortValid())
+
+
+
             {
                 Console.WriteLine("Error Initializing TechUO Remote Control: Invalid ListenPort");
                 return;
